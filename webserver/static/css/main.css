@@ -4,6 +4,7 @@
 @import url('./banner.css');
 @import url('./nav-menu.css');
 @import url('./outer.css');
+@import url('./content.css');
 
 body {
     font-family: 'Courier New', Courier, monospace;
@@ -12,6 +13,10 @@ body {
 }
 
 div, header, nav {
-    border: 1px dotted black;
+    /* border: 1px dotted black; */
+}
+
+.b-bottom {
+    border-bottom: 0.12rem dashed rgb(147, 163, 176); 
 }
 

@@ -29,20 +29,31 @@
     <p>Name of new computer scientist: <input type="text" name="name"> <input type="submit" value="Add"></p>
   </form> -->
 
-  <header id="banner">
+  <header id="banner" class="b-bottom">
     <div class="container">
       <h1>MedicOnline</h1>
+      <div id="banner-data">
+        <span>User: Bernard, A. (Patient)</span>
+        <span>DOB: 04/26/1997</span>
+      </div>
     </div>
   </header>
   <nav id="nav-menu">
     <ul>
-      <li>Action 1</li>
-      <li>Action 2</li>
+      <a href="/users">
+        <li class="b-bottom">User directory</li>
+      </a>
+      <a href="/appointments">
+        <li>Appointments</li>
+      </a>
+      <a href="/records">
+        <li>Records</li>
+      </a>
     </ul>
   </nav>
   <div id="outer">
-    <div class="content container" style="height: 300vh">
-      <h1>Hello</h1>
+    <div id="content" class="container" style="height: 300vh">
+      <h1><span class="b-bottom">User directory</span></h1>
     </div>
   </div>
 

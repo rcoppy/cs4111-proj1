@@ -8,4 +8,18 @@
 
     position: sticky;
     top: 0;
+
+    background-color: rgb(158, 201, 186);
+
+    z-index: 2;
+}
+
+#banner h1 {
+    font-size: 1.75rem; 
+}
+
+#banner-data {
+    display: flex; 
+    justify-content: flex-start;
+    gap: 1rem;
 }
