@@ -1,0 +1,7 @@
+#outer {
+    width: 90vw; 
+    position: relative;
+    left: 10vw; 
+
+    min-height: 90vh;
+}

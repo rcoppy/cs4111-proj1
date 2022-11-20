@@ -1,0 +1,11 @@
+#banner {
+    min-height: 10vh;
+    width: 100vw; 
+    
+    display: flex; 
+    flex-direction: column;
+    justify-content: flex-end;
+
+    position: sticky;
+    top: 0;
+}
