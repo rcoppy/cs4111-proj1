@@ -1,11 +1,8 @@
 <html>
-  <style>
-    body{ 
-      font-size: 15pt;
-      font-family: arial;
-    }
-  </style>
 
+<head>
+  <link rel="stylesheet" href="../static/css/main.css" />
+</head>
 
 <body>
   <h1>Some famous Computer Scientists</h1>
@@ -17,11 +14,11 @@
     {% endfor %}
   </div>
 
-<p><a href="another">Go to the other page</a></p>
+  <p><a href="another">Go to the other page</a></p>
 
-<form method="POST" action="/add">
-<p>Name of new computer scientist: <input type="text" name="name"> <input type="submit" value="Add"></p>
-</form>
+  <form method="POST" action="/add">
+    <p>Name of new computer scientist: <input type="text" name="name"> <input type="submit" value="Add"></p>
+  </form>
 
 </body>
 

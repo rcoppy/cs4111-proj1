@@ -1,0 +1,6 @@
+@import url('./normalize.css'); 
+
+body {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: rgb(196, 234, 221);
+}
