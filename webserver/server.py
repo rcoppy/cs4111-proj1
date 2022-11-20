@@ -14,9 +14,11 @@ from sqlalchemy import *
 from sqlalchemy.pool import NullPool
 from flask import Flask, request, render_template, g, redirect, Response
 from dotenv import load_dotenv
+from flask_json import FlaskJSON, JsonError, json_response, as_json
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
+FlaskJSON(app)
 
 load_dotenv()
 
@@ -178,6 +180,11 @@ def login():
     abort(401)
     this_is_never_executed()
 
+
+@app.route('/example-json')
+@as_json
+def example_json(): 
+  return ["this", "is", "an", "example"]
 
 if __name__ == "__main__":
   import click
