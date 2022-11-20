@@ -6,6 +6,9 @@
 @import url('./outer.css');
 @import url('./content.css');
 
+/* components */
+@import url('./profile-entry.css');
+
 body {
     font-family: 'Courier New', Courier, monospace;
     background-color: rgb(196, 234, 221);

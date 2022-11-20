@@ -184,7 +184,11 @@ def login():
 @app.route('/example-json')
 @as_json
 def example_json(): 
-  return ["this", "is", "an", "example"]
+  return [
+    {"firstName": "Alex", "lastName": "Rupp", "birthday": "03/25/1998"},
+    {"firstName": "Peter", "lastName": "McElroy", "birthday": "06/13/1987"},
+    {"firstName": "Justin", "lastName": "Sparrows", "birthday": "09/06/2002"}
+  ]
 
 if __name__ == "__main__":
   import click
