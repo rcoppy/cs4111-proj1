@@ -197,23 +197,82 @@ def get_users():
   cursor.close()
   return users
 
+@app.route('/appointments', methods=['POST'])
+@as_json
+def get_appointments(): 
+  params = request.json
+  pvid = params.get('providerId', None)
+  ptid = params.get('patientId', None)
 
-@app.route('/providers')
+  # overly complex
+  conditions = []
+  values = {}
+
+  if ptid is not None: 
+    conditions.append(f'ptid = :ptid')
+    values['ptid'] = ptid
+
+  if pvid is not None: 
+    conditions.append(f'pvid = :pvid')
+    values['pvid'] = pvid
+
+  if len(conditions) < 1: 
+    return []
+
+  where_clause = f'WHERE {conditions[0]}'
+
+  if len(conditions) > 1: 
+    for c in conditions[1:]:
+      where_clause += f' AND {c}'
+
+  statement = text(f'SELECT * FROM amr2311.appointments JOIN amr2311.schedules USING (aptid) {where_clause}')
+
+  cursor = g.conn.execute(statement, values)
+  appointments = []
+  for result in cursor:
+    appointments.append({
+      "patientId": result["ptid"], 
+      "providerId": result["pvid"], 
+      "id": result["aptid"], 
+      "time": result["scheduled_time"], 
+      "reason": result["reason"],
+      "duration": result["duration"]
+    })
+  cursor.close()
+  return appointments
+
+@app.route('/providers', methods=['GET', 'POST'])
 @as_json
 def get_providers(): 
-  cursor = g.conn.execute("SELECT * FROM amr2311.providers")
-  providers = []
-  for result in cursor:
-    providers.append({
-      "id": result["pvid"], 
-      "salary": result["salary"], 
-      "userId": result["uid"]
-    })  # can also be accessed using result[0]
-  cursor.close()
-  return providers
+
+  if not bool(request.json): 
+    cursor = g.conn.execute("SELECT * FROM amr2311.providers")
+    providers = []
+    for result in cursor:
+      providers.append({
+        "id": result["pvid"], 
+        "salary": result["salary"], 
+        "userId": result["uid"]
+      })  # can also be accessed using result[0]
+    cursor.close()
+    return providers
+  else: 
+    statement = text("SELECT * FROM amr2311.providers WHERE uid = :uid") 
+    cursor = g.conn.execute(statement, {"uid": request.json["userId"]})
+    providers = []
+    for result in cursor:
+      providers.append({
+        "id": result["pvid"], 
+        "salary": result["salary"], 
+        "userId": result["uid"]
+      })  # can also be accessed using result[0]
+    cursor.close()
+    return providers
+
+  
 
 
-@app.route('/patients')
+@app.route('/patients', methods=['GET', 'POST'])
 @as_json
 def get_patients(): 
   cursor = g.conn.execute("SELECT * FROM amr2311.patients")

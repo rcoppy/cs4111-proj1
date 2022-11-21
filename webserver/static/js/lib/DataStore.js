@@ -7,6 +7,10 @@ export default class DataStore {
         return this.store.get(key);
     }
 
+    hasStore(key) {
+        return this.store.has(key); 
+    }
+
     getRecords(type) {
         return this.store.get(type).data; 
     }
@@ -17,6 +21,7 @@ export default class DataStore {
 
     mutate(key, action = (data) => { return data; }) {
         // `action` must return the mutated passed argument. 
+        
         const v = this.store.get(key);
 
         const newData = action(v.data);
@@ -26,6 +31,7 @@ export default class DataStore {
     }
 
     // onMutate stores function delegates to be invoked on state change
+    // the order they're pushed matters
     registerStore(key, data, onMutate = []) {
         this.store.set(key, { data: data, onMutate: onMutate });
     }
@@ -36,7 +42,14 @@ export default class DataStore {
         this.store.set(key, v);
     }
 
-    forceInvokeHandlers() {
+    forceInvokeHandler(key) {
+        const v = this.store.get(key); 
+        v.onMutate.forEach(
+            f => f(v.data)
+        ); 
+    }
+
+    forceInvokeAllHandlers() {
         Array.from(this.store.values()).forEach(
             v => v.onMutate.forEach(
                 f => f(v.data)));

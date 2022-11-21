@@ -1,14 +1,19 @@
 @import url('./normalize.css'); 
 @import url('https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css');
 
+@import url('./variables.css');
+
 @import url('./banner.css');
 @import url('./nav-menu.css');
 @import url('./outer.css');
 @import url('./content.css');
 
+/* components */ 
+@import url('./user-profile.css');
+
 body {
     font-family: 'Courier New', Courier, monospace;
-    background-color: rgb(196, 234, 221);
+    background-color: var(--background-color);
     overflow-x: hidden;
 }
 

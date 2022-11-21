@@ -1,79 +1,274 @@
-import UserProfile from './UserProfile.js';
+import UserProfile from './components/UserProfile.js';
+import Appointment from './components/Appointment.js';
 import DataStore from './lib/DataStore.js';
+import AppointmentsView from './views/AppointmentsView.js';
+import UsersView from './views/usersView.js';
 
 const store = new DataStore();
 
-store.registerStore('activeUser', {}); 
-store.registerHandler('activeUser', (user) => {
-    console.log(user);
-    $('#banner-data .first-name').text(user['first_name']); 
-    $('#banner-data .last-name').text(user['last_name']); 
-    $('#banner-data .birthday').text(user['birthday']); 
-});
+
 
 
 export default function renderPage() {
     $(document).ready(function () {
-        // fetch('/example-json')
-        //     .then((response) => response.json())
-        //     .then((data) => $('#content').append(renderMultiple(UserProfile, data)));
 
-        // getRecordsFromJson('/users', (r) => console.log(r)); 
+        configureUserStoreAndHandlers();
 
+        bindViewsToNav();
 
+        renderUsersView();
 
-        const renderMappings = new Map();
-        renderMappings.set('users', { component: UserProfile, selector: '#content' });
+        // // initial user fetch -- need to simplify 
+        // const renderMappings = new Map();
 
-        // const recordTypes = ['users', 'providers', 'patients']; 
+        // // can only add record types here that return arrays of like objects in response to 
+        // // get requests
+        // renderMappings.set('users', { component: UserProfile, selector: '#user-list' });
+        // // renderMappings.set('appointments', { component: Appointment, selector: '#appointment-list' });
 
-        // get relevant records
-        const recordTypes = Array.from(renderMappings.keys());
+        // // const recordTypes = ['users', 'providers', 'patients', 'appointments']; 
 
-        fetchRecordTypesToStore(recordTypes).then(
-            () => {
-                recordTypes.forEach(t => store.registerHandler(t,
-                    () => renderRecords(
-                        renderMappings.get(t).selector,
-                        t,
-                        renderMappings.get(t).component
-                    )));
+        // // get relevant records
+        // const recordTypes = Array.from(renderMappings.keys());
 
-
-                // bind click handlers (order matters--need to register after render handler pushed)
-                store.registerHandler('users', (users) => {
-                    $('.user-profile').each(function() { $(this).click(
-                        () => store.mutate('activeUser', 
-                            () => store.getRecords('users').get($(this).data('id')))
-                    )}); 
-                }); 
-
-                // initial page render
-                store.forceInvokeHandlers();
-
-                // choose an active user
-                const user = store.getRecords('users').values().next().value; 
-                store.mutate('activeUser', () => user); 
-            }
-        );
+        // fetchRecordTypesToStore(recordTypes).then(
+        //     () => {
+        //         recordTypes.forEach(t => store.registerHandler(t,
+        //             () => renderRecords(
+        //                 renderMappings.get(t).selector,
+        //                 t,
+        //                 renderMappings.get(t).component
+        //             )));
 
 
+        //         // bind click handlers (order matters--need to register after render handler pushed)
+        //         store.registerHandler('users', (users) => {
+        //             $('.user-profile').each(function () {
+        //                 $(this).click( // lambda functions don't preserve 'this'
+        //                     () => store.mutate('activeUser',
+        //                         () => store.getRecords('users').get($(this).data('id')))
+        //                 )
+        //             });
+        //         });
 
+        //         // UI signifier for active user
+        //         store.registerHandler('activeUser', user =>
+        //             $('.user-profile').each(function () {
+        //                 if ($(this).data('id') === user['id']) {
+        //                     $(this).addClass('active');
+        //                 } else {
+        //                     $(this).removeClass('active');
+        //                 }
+        //             }));
 
+        //         // initial page render
+        //         store.forceInvokeAllHandlers();
 
-
-
+        //         // choose an active user
+        //         const user = store.getRecords('users').values().next().value;
+        //         store.mutate('activeUser', () => user);
+        //     }
+        // );
     });
 }
 
+function configureUserStoreAndHandlers() {
+    store.registerStore('users', new Map());
+    store.registerStore('activeUser', {});
+
+    store.registerHandler('activeUser', (user) => {
+        console.log(user);
+        $('#banner-data .first-name').text(user['first_name']);
+        $('#banner-data .last-name').text(user['last_name']);
+        $('#banner-data .birthday').text(user['birthday']);
+    });
+
+    store.registerHandler('users', () => renderRecords('#user-list', 'users', UserProfile));
+
+    // bind click handlers (order matters--need to register after render handler pushed)
+    store.registerHandler('users', (users) => {
+        $('.user-profile').each(function () {
+            $(this).click( // lambda functions don't preserve 'this'
+                () => store.mutate('activeUser',
+                    () => store.getRecords('users').get($(this).data('id')))
+            )
+        });
+    });
+
+    // UI signifier for active user
+    store.registerHandler('activeUser', user =>
+        $('.user-profile').each(function () {
+            if ($(this).data('id') === user['id']) {
+                $(this).addClass('active');
+            } else {
+                $(this).removeClass('active');
+            }
+        }));
+
+    fetchAllOrSomeRecordsToStore('users').then(() => {
+        // choose an active user
+        const user = store.getRecords('users').values().next().value;
+
+        console.log(store.getRecords('users'));
+
+        store.mutate('activeUser', () => user);
+    });
+}
+
+// function bindViewsToStore() {
+
+//     // appointments view
+//     store.registerStore('appointments', new Map());
+//     store.registerHandler('appointments',
+//         () => renderFilteredRecords('#appointment-list', 'appointments', Appointment));
+// }
+
+function bindViewsToNav() {
+    $('[data-path="users"]').click(() => {
+        renderUsersView();
+    });
+
+    $('[data-path="provider-appointments"]').click(() => {
+        const user = store.getRecords('activeUser');
+
+        fetchFilteredRecordsToStore('providers', { userId: user.id })
+            .then(() => {
+                try {
+                    const providerId = Array.from(store.getRecords('providers').values()).filter(p => p.userId === user.id)[0].id;
+                    renderAppointmentsView({ providerId: providerId });
+                } catch {
+                    console.log('no appointments for this provider');
+                }
+            })
+    });
+
+    $('[data-path="patient-appointments"]').click(() => {
+        const user = store.getRecords('activeUser');
+
+        fetchFilteredRecordsToStore('patients', { userId: user.id })
+            .then(() => {
+                try {
+                    const patientId = Array.from(store.getRecords('patients').values()).filter(p => p.userId === user.id)[0].id;
+                    renderAppointmentsView({ patientId: patientId });
+                } catch {
+                    console.log('no appointments for this patient');
+                }
+            })
+    });
+}
+
+async function fetchFilteredRecordsToStore(recordType = '', params = {}) {
+    // expects response to be an array of like objects with at least an id property 
+    const response = await fetch('/' + recordType, {
+        method: 'POST',
+        mode: 'cors',
+        cache: 'no-cache',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        redirect: 'follow',
+        referrerPolicy: 'no-referrer',
+        body: JSON.stringify(params),
+    });
+
+    const data = await response.json();
+
+    if (!store.hasStore(recordType)) {
+        store.registerStore(recordType, new Map());
+    }
+
+    const patchedRecords = store.getRecords(recordType);
+    data.forEach(record => patchedRecords.set(record.id, record));
+
+    // this leaves old appointments intact; need to make sure render with filter
+    store.mutate(recordType, () => patchedRecords);
+}
+
+async function fetchAllOrSomeRecordsToStore(recordType, params = null) {
+    if (!params) {
+        await fetchRecordTypesToStore([recordType]);
+    } else {
+        await fetchFilteredRecordsToStore(recordType, params);
+    }
+}
+
+async function fetchAppointmentsToStore(params = {}) {
+
+    // will register the appointments store if it doesn't already exist
+
+    // example params: 
+    // { patientId: 1 }
+    // { providerId: 1 }
+    // { patientId: 1, providerId: 1 }
+
+    await fetchFilteredRecordsToStore('appointments', params);
+}
+
 function renderRecords(targetSelector, type, component) {
-    const data = Array.from(store.getRecords(type).values());
-    $(targetSelector).append(renderMultiple(component, data));
+    const element = $(targetSelector);
+
+    // check element exists
+    if (element.length) {
+        element.empty();
+        const data = Array.from(store.getRecords(type).values());
+        element.append(renderMultiple(component, data));
+    }
+}
+
+function renderFilteredRecords(targetSelector, type, component, filterParams = {}) {
+    const element = $(targetSelector);
+
+    // check element exists
+    if (element.length) {
+        // clear children
+        element.empty();
+        const data = Array.from(store.getRecords(type).values())
+            .filter(record => {
+                for (const [key, value] of Object.entries(filterParams)) {
+                    if (record[key] !== value) return false;
+                }
+
+                return true;
+            });
+
+        element.append(renderMultiple(component, data));
+    }
 }
 
 function renderMultiple(component, data) {
     return data.map(component).join('');
 }
+
+// view is of type component function 
+async function renderViewWithFetch(targetSelector, view, fetchCall = () => { }) {
+    const root = $(targetSelector);
+    root.empty();
+
+    if (root.length) {
+
+        // order matters--we want the fetch to trigger a re-render with state
+        // *after* the view is attached to the DOM
+        root.append(view());
+
+        // if store types were already registered,
+        // a re-render will be triggered
+        await fetchCall();
+    }
+}
+
+async function renderAppointmentsView(filterParams = {}) {
+    await renderViewWithFetch("#contents", AppointmentsView,
+        () => fetchAppointmentsToStore(filterParams));
+}
+
+async function renderUsersView() {
+    await renderViewWithFetch("#contents", UsersView,
+        () => fetchAllOrSomeRecordsToStore('users'));
+
+    renderRecords('#user-list', 'users', UserProfile);
+}
+
 
 // apply a function to a collection of records, per record
 // expects json payload of array of uniform objects
@@ -93,7 +288,18 @@ async function getRecordMapOfType(type) {
 async function fetchRecordTypesToStore(types = []) {
     const results = await Promise.all(types.map(t => getRecordMapOfType(t)));
 
-    results.forEach((result) => store.registerStore(result.type, result.map));
+    results.forEach((result) => {
+        if (store.hasStore(result.type)) {
+            // patch existing store
+            store.mutate(result.type, (oldData) => {
+                Array.from(result.map.values()).forEach(record => oldData.set(record.id, record));
+                console.log(oldData);
+                return oldData;
+            });
+        } else {
+            store.registerStore(result.type, result.map);
+        }
+    });
 }
 
 

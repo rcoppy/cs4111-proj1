@@ -22,5 +22,5 @@
 }
 
 #nav-menu li:hover {
-    background-color: aliceblue;
+    background-color: var(--highlight-color);
 }

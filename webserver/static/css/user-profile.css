@@ -1,0 +1,14 @@
+.user-profile {
+    width: 30vw;
+    padding: 0.5rem 0.5rem; 
+}
+
+.user-profile p {
+    margin-bottom: 0;
+}
+
+.user-profile.active, .user-profile:hover {
+    background-color: var(--highlight-color);
+}
+
+
