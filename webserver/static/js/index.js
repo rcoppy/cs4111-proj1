@@ -138,7 +138,7 @@ function bindViewsToNav() {
                     const providerId = Array.from(store.getRecords('providers').values()).filter(p => p.userId === user.id)[0].id;
                     renderAppointmentsView({ providerId: providerId });
                 } catch {
-                    console.log("this user isn't a provider");
+                    alert("this user isn't a provider");
                 }
             })
     });
@@ -152,7 +152,7 @@ function bindViewsToNav() {
                     const patientId = Array.from(store.getRecords('patients').values()).filter(p => p.userId === user.id)[0].id;
                     renderAppointmentsView({ patientId: patientId });
                 } catch {
-                    console.log("this user isn't a patient");
+                    alert("this user isn't a patient");
                 }
             })
     });
