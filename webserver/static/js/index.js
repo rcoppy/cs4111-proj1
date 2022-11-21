@@ -1,7 +1,7 @@
 import UserProfile from './UserProfile.js';
 import DataStore from './lib/DataStore.js';
 
-const store = new DataStore(); 
+const store = new DataStore();
 
 
 export default function renderPage() {
@@ -12,9 +12,42 @@ export default function renderPage() {
 
         // getRecordsFromJson('/users', (r) => console.log(r)); 
 
-        fetchRecordTypesToStore(['users', 'providers', 'patients']).then(console.log(store)); 
+
+
+        const renderMappings = new Map();
+        renderMappings.set('users', { component: UserProfile, selector: '#content' });
+
+        // const recordTypes = ['users', 'providers', 'patients']; 
+
+        // get relevant records
+        const recordTypes = Array.from(renderMappings.keys());
+
+        fetchRecordTypesToStore(recordTypes).then(
+            () => {
+                recordTypes.forEach(t => store.registerHandler(t,
+                    () => renderRecords(
+                        renderMappings.get(t).selector,
+                        t,
+                        renderMappings.get(t).component
+                    )));
+
+                // initial page render
+                store.forceInvokeHandlers();
+            }
+        );
+
+
+
+
+
+
 
     });
+}
+
+function renderRecords(targetSelector, type, component) {
+    const data = Array.from(store.getRecords(type).values());
+    $(targetSelector).append(renderMultiple(component, data));
 }
 
 function renderMultiple(component, data) {
@@ -23,21 +56,23 @@ function renderMultiple(component, data) {
 
 // apply a function to a collection of records, per record
 // expects json payload of array of uniform objects
-async function getProcessedRecordsFromJson(type, callback=(record) => {}) {
-    const data = await (await fetch('/' + type)).json(); 
-    return data.map(callback); 
+async function getProcessedRecordsFromJson(type, callback = (record) => { }) {
+    const data = await (await fetch('/' + type)).json();
+    return data.map(callback);
 }
 
 // assumes fetched records will have an 'id' tag
 async function getRecordMapOfType(type) {
-    const map = new Map(); 
-    await getProcessedRecordsFromJson(type, (record) => map.set(record.id, record)); 
-    return { type: type, map: map }; 
+    const map = new Map();
+    await getProcessedRecordsFromJson(type, (record) => map.set(record.id, record));
+    return { type: type, map: map };
 }
 
-async function fetchRecordTypesToStore(types) {
-    (await Promise.all(types.map(t => getRecordMapOfType(t))))
-                            .forEach(result => store.registerStore(result.type, result.map));
+// given an array of record types, fetch them 
+async function fetchRecordTypesToStore(types = []) {
+    const results = await Promise.all(types.map(t => getRecordMapOfType(t)));
+
+    results.forEach((result) => store.registerStore(result.type, result.map));
 }
 
 

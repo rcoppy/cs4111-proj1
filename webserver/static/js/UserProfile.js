@@ -3,9 +3,9 @@ const style = `
     font-weight: bold; 
 `;
 
-const UserProfile = ({firstName, lastName, birthday}) => `
+const UserProfile = ({first_name, last_name, birthday}) => `
     <div style="${style}" class="b-bottom">
-        <h2>${lastName}, ${firstName}</h2>
+        <h2>${last_name}, ${first_name}</h2>
         <p>DOB: ${birthday}
     </div>
 `;
