@@ -181,6 +181,53 @@ def login():
     this_is_never_executed()
 
 
+@app.route('/users')
+@as_json
+def get_users(): 
+  cursor = g.conn.execute("SELECT * FROM amr2311.users")
+  users = []
+  for result in cursor:
+    users.append({
+      "birthday": result["birthday"], 
+      "first_name": result["first_name"], 
+      "last_name": result["last_name"], 
+      "sex": result["sex"], 
+      "id": result["uid"]
+    })  # can also be accessed using result[0]
+  cursor.close()
+  return users
+
+
+@app.route('/providers')
+@as_json
+def get_providers(): 
+  cursor = g.conn.execute("SELECT * FROM amr2311.providers")
+  providers = []
+  for result in cursor:
+    providers.append({
+      "id": result["pvid"], 
+      "salary": result["salary"], 
+      "userId": result["uid"]
+    })  # can also be accessed using result[0]
+  cursor.close()
+  return providers
+
+
+@app.route('/patients')
+@as_json
+def get_patients(): 
+  cursor = g.conn.execute("SELECT * FROM amr2311.patients")
+  patients = []
+  for result in cursor:
+    patients.append({
+      "id": result["ptid"], 
+      "patientSince": result["patient_since"], 
+      "userId": result["uid"]
+    })  # can also be accessed using result[0]
+  cursor.close()
+  return patients
+
+
 @app.route('/example-json')
 @as_json
 def example_json(): 
