@@ -3,6 +3,14 @@ import DataStore from './lib/DataStore.js';
 
 const store = new DataStore();
 
+store.registerStore('activeUser', {}); 
+store.registerHandler('activeUser', (user) => {
+    console.log(user);
+    $('#banner-data .first-name').text(user['first_name']); 
+    $('#banner-data .last-name').text(user['last_name']); 
+    $('#banner-data .birthday').text(user['birthday']); 
+});
+
 
 export default function renderPage() {
     $(document).ready(function () {
@@ -31,8 +39,21 @@ export default function renderPage() {
                         renderMappings.get(t).component
                     )));
 
+
+                // bind click handlers (order matters--need to register after render handler pushed)
+                store.registerHandler('users', (users) => {
+                    $('.user-profile').each(function() { $(this).click(
+                        () => store.mutate('activeUser', 
+                            () => store.getRecords('users').get($(this).data('id')))
+                    )}); 
+                }); 
+
                 // initial page render
                 store.forceInvokeHandlers();
+
+                // choose an active user
+                const user = store.getRecords('users').values().next().value; 
+                store.mutate('activeUser', () => user); 
             }
         );
 
