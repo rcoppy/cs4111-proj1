@@ -73,8 +73,9 @@ export default function renderPage() {
 }
 
 function configureUserStoreAndHandlers() {
-    store.registerStore('users', new Map());
-    store.registerStore('activeUser', {});
+    
+    if (!store.hasStore('users')) store.registerStore('users', new Map());
+    if (!store.hasStore('activeUser')) store.registerStore('activeUser', {});
 
     store.registerHandler('activeUser', (user) => {
         console.log(user);
@@ -137,7 +138,7 @@ function bindViewsToNav() {
                     const providerId = Array.from(store.getRecords('providers').values()).filter(p => p.userId === user.id)[0].id;
                     renderAppointmentsView({ providerId: providerId });
                 } catch {
-                    console.log('no appointments for this provider');
+                    console.log("this user isn't a provider");
                 }
             })
     });
@@ -151,7 +152,7 @@ function bindViewsToNav() {
                     const patientId = Array.from(store.getRecords('patients').values()).filter(p => p.userId === user.id)[0].id;
                     renderAppointmentsView({ patientId: patientId });
                 } catch {
-                    console.log('no appointments for this patient');
+                    console.log("this user isn't a patient");
                 }
             })
     });
@@ -207,11 +208,11 @@ async function fetchAppointmentsToStore(params = {}) {
 
 function renderRecords(targetSelector, type, component) {
     const element = $(targetSelector);
+    const data = Array.from(store.getRecords(type).values());
 
     // check element exists
-    if (element.length) {
+    if (element.length && data.length > 0) {
         element.empty();
-        const data = Array.from(store.getRecords(type).values());
         element.append(renderMultiple(component, data));
     }
 }
@@ -222,7 +223,7 @@ function renderFilteredRecords(targetSelector, type, component, filterParams = {
     // check element exists
     if (element.length) {
         // clear children
-        element.empty();
+        
         const data = Array.from(store.getRecords(type).values())
             .filter(record => {
                 for (const [key, value] of Object.entries(filterParams)) {
@@ -232,7 +233,10 @@ function renderFilteredRecords(targetSelector, type, component, filterParams = {
                 return true;
             });
 
-        element.append(renderMultiple(component, data));
+        if (data.length > 0) {
+            element.empty();
+            element.append(renderMultiple(component, data));
+        }
     }
 }
 
@@ -260,6 +264,8 @@ async function renderViewWithFetch(targetSelector, view, fetchCall = () => { }) 
 async function renderAppointmentsView(filterParams = {}) {
     await renderViewWithFetch("#contents", AppointmentsView,
         () => fetchAppointmentsToStore(filterParams));
+
+    renderFilteredRecords('#appointment-list', 'appointments', Appointment, filterParams);
 }
 
 async function renderUsersView() {
@@ -267,6 +273,7 @@ async function renderUsersView() {
         () => fetchAllOrSomeRecordsToStore('users'));
 
     renderRecords('#user-list', 'users', UserProfile);
+    configureUserStoreAndHandlers(); 
 }
 
 

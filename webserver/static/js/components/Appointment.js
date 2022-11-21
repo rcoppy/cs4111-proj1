@@ -1,7 +1,8 @@
-const Appointment = ({first_name, last_name, birthday, id}) => `
-        <div data-id="${id}" class="user-profile b-bottom">
-            <h4>${last_name}, ${first_name}</h4>
-            <p>DOB: ${birthday}</p>
+const Appointment = ({provider_name, patient_name, time, reason, duration, id}) => `
+        <div data-id="${id}" class="appointment b-bottom">
+            <h4>${time}, ${duration} minutes</h4>
+            <p>Seeing ${provider_name}</p>
+            <p>Reason: ${reason}</p>
         </div>
 `;
     

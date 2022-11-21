@@ -17,7 +17,7 @@
     list-style-type: none;
     display: block; 
     padding-left: 1rem;
-    height: 2rem;
+    min-height: 2rem;
     padding-top: 0.3rem;
 }
 
