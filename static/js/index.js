@@ -2,7 +2,7 @@ import UserProfile from './components/UserProfile.js';
 import Appointment from './components/Appointment.js';
 import DataStore from './lib/DataStore.js';
 import AppointmentsView from './views/AppointmentsView.js';
-import UsersView from './views/usersView.js';
+import UsersView from './views/UsersView.js';
 
 const store = new DataStore();
 
