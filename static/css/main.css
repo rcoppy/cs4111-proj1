@@ -10,6 +10,7 @@
 
 /* components */ 
 @import url('./user-profile.css');
+@import url('./users-view.css');
 
 body {
     font-family: 'Courier New', Courier, monospace;

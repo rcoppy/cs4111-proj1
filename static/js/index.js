@@ -8,6 +8,9 @@ const store = new DataStore();
 
 export default function renderPage() {
     $(document).ready(function () {
+
+        fetchAllOrSomeRecordsToStore('providers');
+
         bindViewsToNav();
 
         initialUserHandlersSetup();
@@ -30,10 +33,16 @@ function initialUserHandlersSetup() {
         $('#banner-data .first-name').text(user['first_name']);
         $('#banner-data .last-name').text(user['last_name']);
         $('#banner-data .birthday').text(user['birthday']);
+
+        const pvid = tryGetProviderIdForUser(user.id);
+        const role = pvid === -1 ? "Patient" : store.getRecords('providers').get(pvid).role;
+
+        $('#banner-data .role').text(role);
     });
 
     store.registerHandler('users', () => {
-        renderRecords('#user-list', 'users', UserProfile)
+        renderLambdaFilteredRecords('#provider-list', 'users', UserProfile, (user) => checkIsUserProvider(user));
+        renderLambdaFilteredRecords('#patient-list', 'users', UserProfile, (user) => !checkIsUserProvider(user));
         updateSelectedUser(store.getRecords('activeUser'));
     });
 
@@ -49,6 +58,20 @@ function initialUserHandlersSetup() {
 
     // UI signifier for active user
     store.registerHandler('activeUser', user => updateSelectedUser(user));
+}
+
+function checkIsUserProvider(user) {
+    return tryGetProviderIdForUser(user.id) !== -1;
+}
+
+function tryGetProviderIdForUser(userId) {
+    try {
+        const providerId = Array.from(store.getRecords('providers').values()).filter(p => p.userId === userId)[0].id;
+        return providerId;
+    } catch (e) {
+        console.log(e);
+        return -1;
+    }
 }
 
 function updateSelectedUser(user) {
@@ -154,7 +177,7 @@ function renderRecords(targetSelector, type, component) {
     }
 }
 
-function renderFilteredRecords(targetSelector, type, component, filterParams = {}) {
+function renderLambdaFilteredRecords(targetSelector, type, component, filterLambda = () => { }) {
     const element = $(targetSelector);
 
     // check element exists
@@ -163,11 +186,7 @@ function renderFilteredRecords(targetSelector, type, component, filterParams = {
 
         const data = Array.from(store.getRecords(type).values())
             .filter(record => {
-                for (const [key, value] of Object.entries(filterParams)) {
-                    if (record[key] !== value) return false;
-                }
-
-                return true;
+                return filterLambda(record);
             });
 
         if (data.length > 0) {
@@ -176,6 +195,39 @@ function renderFilteredRecords(targetSelector, type, component, filterParams = {
         }
     }
 }
+
+function renderFilteredRecords(targetSelector, type, component, filterParams = {}) {
+    renderLambdaFilteredRecords(targetSelector, type, component, (record) => {
+        for (const [key, value] of Object.entries(filterParams)) {
+            if (record[key] !== value) return false;
+        }
+
+        return true;
+    });
+}
+
+// function renderFilteredRecords(targetSelector, type, component, filterParams = {}) {
+//     const element = $(targetSelector);
+
+//     // check element exists
+//     if (element.length) {
+//         // clear children
+
+//         const data = Array.from(store.getRecords(type).values())
+//             .filter(record => {
+//                 for (const [key, value] of Object.entries(filterParams)) {
+//                     if (record[key] !== value) return false;
+//                 }
+
+//                 return true;
+//             });
+
+//         if (data.length > 0) {
+//             element.empty();
+//             element.append(renderMultiple(component, data));
+//         }
+//     }
+// }
 
 function renderMultiple(component, data) {
     return data.map(component).join('');
@@ -214,7 +266,7 @@ async function renderUsersView() {
 // apply a function to a collection of records, per record
 // expects json payload of array of uniform objects
 async function getProcessedRecordsFromJson(type, callback = (record) => { }) {
-    const data = await (await fetch('/' + type)).json();
+    const data = await (await fetch('/' + type, { method: 'GET' })).json();
     return data.map(callback);
 }
 

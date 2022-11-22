@@ -241,33 +241,36 @@ def get_appointments():
   cursor.close()
   return appointments
 
-@app.route('/providers', methods=['GET', 'POST'])
+@app.route('/providers', methods=['GET'])
 @as_json
-def get_providers(): 
+def get_all_providers(): 
+  cursor = g.conn.execute("SELECT * FROM amr2311.providers JOIN is_assigned USING(pvid)")
+  providers = []
+  for result in cursor:
+    providers.append({
+      "id": result["pvid"], 
+      "salary": result["salary"], 
+      "userId": result["uid"],
+      "role": result["title"]
+    })  # can also be accessed using result[0]
+  cursor.close()
+  return providers
 
-  if not bool(request.json): 
-    cursor = g.conn.execute("SELECT * FROM amr2311.providers")
-    providers = []
-    for result in cursor:
-      providers.append({
-        "id": result["pvid"], 
-        "salary": result["salary"], 
-        "userId": result["uid"]
-      })  # can also be accessed using result[0]
-    cursor.close()
-    return providers
-  else: 
-    statement = text("SELECT * FROM amr2311.providers WHERE uid = :uid") 
-    cursor = g.conn.execute(statement, {"uid": request.json["userId"]})
-    providers = []
-    for result in cursor:
-      providers.append({
-        "id": result["pvid"], 
-        "salary": result["salary"], 
-        "userId": result["uid"]
-      })  # can also be accessed using result[0]
-    cursor.close()
-    return providers
+@app.route('/providers', methods=['POST'])
+@as_json
+def get_providers_by_user(): 
+  statement = text("SELECT * FROM amr2311.providers JOIN is_assigned USING(pvid) WHERE uid = :uid") 
+  cursor = g.conn.execute(statement, {"uid": request.json["userId"]})
+  providers = []
+  for result in cursor:
+    providers.append({
+      "id": result["pvid"], 
+      "salary": result["salary"], 
+      "userId": result["uid"],
+      "role": result["title"]
+    })  # can also be accessed using result[0]
+  cursor.close()
+  return providers
 
   
 
