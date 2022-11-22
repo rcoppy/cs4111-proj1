@@ -6,6 +6,8 @@ import UsersView from './views/UsersView.js';
 import NavigationView from './views/NavigationView.js';
 import EncountersView from './views/EncountersView.js';
 import Encounter from './components/Encounter.js';
+import MyPatientsView from './views/MyPatientsView.js';
+import Patient from './components/Patient.js';
 
 const store = new DataStore();
 
@@ -143,6 +145,13 @@ function bindViewsToNav() {
         const pvid = tryGetProviderIdForUser(user.id);
 
         renderEncountersView({ providerId: pvid });
+    });
+
+    $('[data-path="my-patients"]').click(() => {
+        const user = store.getRecords('activeUser');
+        const pvid = tryGetProviderIdForUser(user.id);
+
+        renderMyPatientsView({ providerId: pvid });
     });
 }
 
@@ -314,6 +323,22 @@ async function renderEncountersView(filterParams = {}) {
 
         return encounter.dischargeDate !== null;
     });
+}
+
+async function renderMyPatientsView(filterParams = {}) {
+    await renderViewWithFetch("#contents", MyPatientsView,
+        () => fetchFilteredRecordsToStore('patients', filterParams));
+ 
+    await fetchFilteredRecordsToStore('encounters', filterParams);
+
+    const pvid = filterParams.providerId; 
+
+    const patientIds = Array.from(store.getRecords('encounters').values())
+                            .filter(e => e.providerId === pvid)
+                            .map(encounter => encounter.patientId);
+
+    renderLambdaFilteredRecords('#patients', 'patients', Patient, 
+        patient => patientIds.includes(patient.id));
 }
 
 async function renderUsersView() {

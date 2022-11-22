@@ -272,6 +272,26 @@ def get_providers_by_user():
   cursor.close()
   return providers
 
+@app.route('/prescriptions', methods=['POST'])
+@as_json
+def get_providers_by_patient(): 
+  statement = text("SELECT * FROM amr2311.prescriptions LEFT JOIN amr2311.belongs_to USING(rxid) LEFT JOIN amr2311.undergoes USING(eid) WHERE ptid = :ptid") 
+  cursor = g.conn.execute(statement, {"ptid": request.json["patientId"]})
+  prescriptions = []
+  for result in cursor:
+    prescriptions.append({
+      "id": result["rxid"], 
+      "patientId": result["ptid"], 
+      "encounterId": result["eid"],
+      "datePrescribed": result["date_time"],
+      "name": result["drug_name"],
+      "dosage": result["dosage"],
+      "doseCount": result["dose_count"],
+      "instructions": result["instructions"]
+    })
+  cursor.close()
+  return prescriptions
+
 @app.route('/encounters', methods=['POST'])
 @as_json
 def get_encounter_by_provider(): 
