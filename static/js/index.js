@@ -3,23 +3,38 @@ import Appointment from './components/Appointment.js';
 import DataStore from './lib/DataStore.js';
 import AppointmentsView from './views/AppointmentsView.js';
 import UsersView from './views/UsersView.js';
+import NavigationView from './views/NavigationView.js';
+import EncountersView from './views/EncountersView.js';
+import Encounter from './components/Encounter.js';
 
 const store = new DataStore();
+
+const providerPaths = new Map();
+providerPaths.set("users", "User directory");
+providerPaths.set("provider-appointments", "Appointments");
+providerPaths.set("my-patients", "My patients");
+providerPaths.set("encounters", "Encounters");
+
+const patientPaths = new Map();
+patientPaths.set("users", "User directory");
+patientPaths.set("patient-appointments", "Appointments");
+patientPaths.set("prescriptions", "My prescriptions");
 
 export default function renderPage() {
     $(document).ready(function () {
 
         fetchAllOrSomeRecordsToStore('providers');
 
-        bindViewsToNav();
-
         initialUserHandlersSetup();
 
+        // fetches data for first time
         renderUsersView().then(() => {
             // choose an active user
             const user = store.getRecords('users').values().next().value;
             console.log(user);
             store.mutate('activeUser', () => user);
+
+            // bindViewsToNav();
         });
     });
 }
@@ -57,7 +72,13 @@ function initialUserHandlersSetup() {
     });
 
     // UI signifier for active user
-    store.registerHandler('activeUser', user => updateSelectedUser(user));
+    store.registerHandler('activeUser', user => {
+        updateSelectedUser(user);
+
+        const data = checkIsUserProvider(user) ? providerPaths : patientPaths; 
+        renderView('#nav-menu', () => NavigationView(data)); 
+        bindViewsToNav();
+    });
 }
 
 function checkIsUserProvider(user) {
@@ -115,6 +136,13 @@ function bindViewsToNav() {
                     alert("this user isn't a patient");
                 }
             })
+    });
+
+    $('[data-path="encounters"]').click(() => {
+        const user = store.getRecords('activeUser');
+        const pvid = tryGetProviderIdForUser(user.id);
+
+        renderEncountersView({ providerId: pvid });
     });
 }
 
@@ -234,6 +262,19 @@ function renderMultiple(component, data) {
 }
 
 // view is of type component function 
+async function renderView(targetSelector, view) {
+    const root = $(targetSelector);
+    root.empty();
+
+    if (root.length) {
+
+        // order matters--we want the fetch to trigger a re-render with state
+        // *after* the view is attached to the DOM
+        root.append(view());
+    }
+}
+
+// view is of type component function 
 async function renderViewWithFetch(targetSelector, view, fetchCall = () => { }) {
     const root = $(targetSelector);
     root.empty();
@@ -255,6 +296,24 @@ async function renderAppointmentsView(filterParams = {}) {
         () => fetchAppointmentsToStore(filterParams));
 
     renderFilteredRecords('#appointment-list', 'appointments', Appointment, filterParams);
+}
+
+async function renderEncountersView(filterParams = {}) {
+    await renderViewWithFetch("#contents", EncountersView,
+        () => fetchFilteredRecordsToStore('encounters', filterParams));
+
+    const activeParams = Object.assign({...filterParams}, { dischargeDate: null }); 
+    renderFilteredRecords('#active-encounters', 'encounters', Encounter, activeParams);
+
+    renderLambdaFilteredRecords('#past-encounters', 'encounters', Encounter, encounter => {
+        for (const [key, value] of Object.entries(filterParams)) {
+            if (encounter[key] !== value) return false;
+        }
+
+        console.log(encounter); 
+
+        return encounter.dischargeDate !== null;
+    });
 }
 
 async function renderUsersView() {

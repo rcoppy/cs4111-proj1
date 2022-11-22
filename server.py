@@ -272,10 +272,28 @@ def get_providers_by_user():
   cursor.close()
   return providers
 
-  
+@app.route('/encounters', methods=['POST'])
+@as_json
+def get_encounter_by_provider(): 
+  statement = text("SELECT * FROM amr2311.encounters LEFT JOIN amr2311.oversees USING(eid) LEFT JOIN amr2311.reserves USING(eid) LEFT JOIN amr2311.undergoes USING(eid) WHERE pvid = :pvid") 
+  cursor = g.conn.execute(statement, {"pvid": request.json["providerId"]})
+  encounters = []
+  for result in cursor:
+    encounters.append({
+      "id": result["eid"], 
+      "admissionDate": result["admission_date"], 
+      "dischargeDate": result["discharge_date"],
+      "reason": result["reason"],
+      "visitType": result["visit_type"],
+      "appointmentId": result["aptid"],
+      "providerId": result["pvid"],
+      "patientId": result["ptid"]
+    })
+  cursor.close()
+  return encounters 
 
 
-@app.route('/patients', methods=['GET', 'POST'])
+@app.route('/patients', methods=['GET'])
 @as_json
 def get_patients(): 
   cursor = g.conn.execute("SELECT * FROM amr2311.patients")
@@ -288,6 +306,26 @@ def get_patients():
     })  # can also be accessed using result[0]
   cursor.close()
   return patients
+
+@app.route('/patients', methods=['POST'])
+@as_json
+def get_patients_for_provider(): 
+  statement = text("""SELECT * FROM PATIENTS WHERE ptid IN (SELECT patients.ptid FROM amr2311.encounters
+LEFT JOIN undergoes USING (eid)
+LEFT JOIN patients USING (ptid)
+LEFT JOIN oversees USING (eid)
+WHERE pvid = :pvid)""")
+
+  cursor = g.conn.execute(statement, {"pvid": request.json["providerId"]})
+  patients = []
+  for result in cursor:
+    patients.append({
+      "id": result["ptid"], 
+      "userId": result["uid"], 
+      "patientSince": result["patient_since"]
+    })
+  cursor.close()
+  return patients 
 
 
 @app.route('/example-json')
