@@ -6,74 +6,22 @@ import UsersView from './views/UsersView.js';
 
 const store = new DataStore();
 
-
-
-
 export default function renderPage() {
     $(document).ready(function () {
-
-        configureUserStoreAndHandlers();
-
         bindViewsToNav();
 
-        renderUsersView();
+        initialUserHandlersSetup();
 
-        // // initial user fetch -- need to simplify 
-        // const renderMappings = new Map();
-
-        // // can only add record types here that return arrays of like objects in response to 
-        // // get requests
-        // renderMappings.set('users', { component: UserProfile, selector: '#user-list' });
-        // // renderMappings.set('appointments', { component: Appointment, selector: '#appointment-list' });
-
-        // // const recordTypes = ['users', 'providers', 'patients', 'appointments']; 
-
-        // // get relevant records
-        // const recordTypes = Array.from(renderMappings.keys());
-
-        // fetchRecordTypesToStore(recordTypes).then(
-        //     () => {
-        //         recordTypes.forEach(t => store.registerHandler(t,
-        //             () => renderRecords(
-        //                 renderMappings.get(t).selector,
-        //                 t,
-        //                 renderMappings.get(t).component
-        //             )));
-
-
-        //         // bind click handlers (order matters--need to register after render handler pushed)
-        //         store.registerHandler('users', (users) => {
-        //             $('.user-profile').each(function () {
-        //                 $(this).click( // lambda functions don't preserve 'this'
-        //                     () => store.mutate('activeUser',
-        //                         () => store.getRecords('users').get($(this).data('id')))
-        //                 )
-        //             });
-        //         });
-
-        //         // UI signifier for active user
-        //         store.registerHandler('activeUser', user =>
-        //             $('.user-profile').each(function () {
-        //                 if ($(this).data('id') === user['id']) {
-        //                     $(this).addClass('active');
-        //                 } else {
-        //                     $(this).removeClass('active');
-        //                 }
-        //             }));
-
-        //         // initial page render
-        //         store.forceInvokeAllHandlers();
-
-        //         // choose an active user
-        //         const user = store.getRecords('users').values().next().value;
-        //         store.mutate('activeUser', () => user);
-        //     }
-        // );
+        renderUsersView().then(() => {
+            // choose an active user
+            const user = store.getRecords('users').values().next().value;
+            console.log(user);
+            store.mutate('activeUser', () => user);
+        });
     });
 }
 
-function configureUserStoreAndHandlers() {
-    
+function initialUserHandlersSetup() {
     if (!store.hasStore('users')) store.registerStore('users', new Map());
     if (!store.hasStore('activeUser')) store.registerStore('activeUser', {});
 
@@ -84,7 +32,10 @@ function configureUserStoreAndHandlers() {
         $('#banner-data .birthday').text(user['birthday']);
     });
 
-    store.registerHandler('users', () => renderRecords('#user-list', 'users', UserProfile));
+    store.registerHandler('users', () => {
+        renderRecords('#user-list', 'users', UserProfile)
+        updateSelectedUser(store.getRecords('activeUser'));
+    });
 
     // bind click handlers (order matters--need to register after render handler pushed)
     store.registerHandler('users', (users) => {
@@ -97,32 +48,18 @@ function configureUserStoreAndHandlers() {
     });
 
     // UI signifier for active user
-    store.registerHandler('activeUser', user =>
-        $('.user-profile').each(function () {
-            if ($(this).data('id') === user['id']) {
-                $(this).addClass('active');
-            } else {
-                $(this).removeClass('active');
-            }
-        }));
-
-    fetchAllOrSomeRecordsToStore('users').then(() => {
-        // choose an active user
-        const user = store.getRecords('users').values().next().value;
-
-        console.log(store.getRecords('users'));
-
-        store.mutate('activeUser', () => user);
-    });
+    store.registerHandler('activeUser', user => updateSelectedUser(user));
 }
 
-// function bindViewsToStore() {
-
-//     // appointments view
-//     store.registerStore('appointments', new Map());
-//     store.registerHandler('appointments',
-//         () => renderFilteredRecords('#appointment-list', 'appointments', Appointment));
-// }
+function updateSelectedUser(user) {
+    $('.user-profile').each(function () {
+        if ($(this).data('id') === user['id']) {
+            $(this).addClass('active');
+        } else {
+            $(this).removeClass('active');
+        }
+    });
+}
 
 function bindViewsToNav() {
     $('[data-path="users"]').click(() => {
@@ -223,7 +160,7 @@ function renderFilteredRecords(targetSelector, type, component, filterParams = {
     // check element exists
     if (element.length) {
         // clear children
-        
+
         const data = Array.from(store.getRecords(type).values())
             .filter(record => {
                 for (const [key, value] of Object.entries(filterParams)) {
@@ -271,9 +208,6 @@ async function renderAppointmentsView(filterParams = {}) {
 async function renderUsersView() {
     await renderViewWithFetch("#contents", UsersView,
         () => fetchAllOrSomeRecordsToStore('users'));
-
-    renderRecords('#user-list', 'users', UserProfile);
-    configureUserStoreAndHandlers(); 
 }
 
 
