@@ -6,9 +6,9 @@
 // usage: style="${style}"
 // drawbacks: can't apply complex style rules
 
-const UserProfile = ({first_name, last_name, birthday, id}) => `
+const UserProfile = ({firstName, lastName, birthday, id}) => `
         <div data-id="${id}" class="user-profile b-bottom">
-            <h4>${last_name}, ${first_name}</h4>
+            <h4>${lastName}, ${firstName}</h4>
             <p>DOB: ${birthday}</p>
         </div>
 `;

@@ -47,8 +47,8 @@ function initialUserHandlersSetup() {
 
     store.registerHandler('activeUser', (user) => {
         console.log(user);
-        $('#banner-data .first-name').text(user['first_name']);
-        $('#banner-data .last-name').text(user['last_name']);
+        $('#banner-data .first-name').text(user['firstName']);
+        $('#banner-data .last-name').text(user['lastName']);
         $('#banner-data .birthday').text(user['birthday']);
 
         const pvid = tryGetProviderIdForUser(user.id);
@@ -77,8 +77,8 @@ function initialUserHandlersSetup() {
     store.registerHandler('activeUser', user => {
         updateSelectedUser(user);
 
-        const data = checkIsUserProvider(user) ? providerPaths : patientPaths; 
-        renderView('#nav-menu', () => NavigationView(data)); 
+        const data = checkIsUserProvider(user) ? providerPaths : patientPaths;
+        renderView('#nav-menu', () => NavigationView(data));
         bindViewsToNav();
     });
 }
@@ -214,23 +214,42 @@ function renderRecords(targetSelector, type, component) {
     }
 }
 
-function renderLambdaFilteredRecords(targetSelector, type, component, filterLambda = () => { }) {
+function renderLambdaFilteredMappedRecords(targetSelector, type,
+    component,
+    filterLambda = (record) => { },
+    mapperLambda = (record) => { }) {
     const element = $(targetSelector);
 
     // check element exists
     if (element.length) {
         // clear children
 
+        // mapping is applied *before* filter
         const data = Array.from(store.getRecords(type).values())
-            .filter(record => {
-                return filterLambda(record);
-            });
+            .map(record => mapperLambda(record))
+            .filter(record => filterLambda(record)
+            );
 
         if (data.length > 0) {
             element.empty();
             element.append(renderMultiple(component, data));
         }
     }
+}
+
+function renderLambdaFilteredRecords(targetSelector, type, component, filterLambda = () => { }) {
+    renderLambdaFilteredMappedRecords(targetSelector, type, component, filterLambda, record => record);
+}
+
+function renderFilteredMappedRecords(targetSelector, type, component, filterParams = {}, mapperLambda = record => { }) {
+    renderLambdaFilteredMappedRecords(targetSelector, type, component,
+        (record) => {
+            for (const [key, value] of Object.entries(filterParams)) {
+                if (record[key] !== value) return false;
+            }
+
+            return true;
+        }, mapperLambda);
 }
 
 function renderFilteredRecords(targetSelector, type, component, filterParams = {}) {
@@ -304,14 +323,30 @@ async function renderAppointmentsView(filterParams = {}) {
     await renderViewWithFetch("#contents", AppointmentsView,
         () => fetchAppointmentsToStore(filterParams));
 
-    renderFilteredRecords('#appointment-list', 'appointments', Appointment, filterParams);
+    await fetchRecordTypesToStore(['providers', 'patients']); 
+
+    renderFilteredMappedRecords('#appointment-list', 'appointments', Appointment, filterParams, 
+        appointment => {
+            const provider = store.getRecords('providers').get(appointment.providerId);
+            const patient = store.getRecords('patients').get(appointment.patientId);
+
+            const pvUser = store.getRecords('users').get(provider.userId); 
+            const ptUser = store.getRecords('users').get(patient.userId);
+
+            const names = {
+                patientName: `${ptUser.firstName} ${ptUser.lastName}`,
+                providerName: `${pvUser.firstName} ${pvUser.lastName}, ${provider.role}`
+            }
+
+            return Object.assign({...appointment}, names); 
+        });
 }
 
 async function renderEncountersView(filterParams = {}) {
     await renderViewWithFetch("#contents", EncountersView,
         () => fetchFilteredRecordsToStore('encounters', filterParams));
 
-    const activeParams = Object.assign({...filterParams}, { dischargeDate: null }); 
+    const activeParams = Object.assign({ ...filterParams }, { dischargeDate: null });
     renderFilteredRecords('#active-encounters', 'encounters', Encounter, activeParams);
 
     renderLambdaFilteredRecords('#past-encounters', 'encounters', Encounter, encounter => {
@@ -319,7 +354,7 @@ async function renderEncountersView(filterParams = {}) {
             if (encounter[key] !== value) return false;
         }
 
-        console.log(encounter); 
+        console.log(encounter);
 
         return encounter.dischargeDate !== null;
     });
@@ -328,17 +363,25 @@ async function renderEncountersView(filterParams = {}) {
 async function renderMyPatientsView(filterParams = {}) {
     await renderViewWithFetch("#contents", MyPatientsView,
         () => fetchFilteredRecordsToStore('patients', filterParams));
- 
+
     await fetchFilteredRecordsToStore('encounters', filterParams);
 
-    const pvid = filterParams.providerId; 
+    const pvid = filterParams.providerId;
 
     const patientIds = Array.from(store.getRecords('encounters').values())
-                            .filter(e => e.providerId === pvid)
-                            .map(encounter => encounter.patientId);
+        .filter(e => e.providerId === pvid)
+        .map(encounter => encounter.patientId);
 
-    renderLambdaFilteredRecords('#patients', 'patients', Patient, 
-        patient => patientIds.includes(patient.id));
+    renderLambdaFilteredMappedRecords('#patients', 'patients', Patient,
+        patient => patientIds.includes(patient.id),
+        patient => {
+            const user = store.getRecords('users').get(patient.userId);
+            return Object.assign({ ...patient }, {
+                firstName: user.firstName,
+                lastName: user.lastName,
+                // TODO: prescriptions 
+            })
+        });
 }
 
 async function renderUsersView() {

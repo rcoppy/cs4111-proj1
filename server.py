@@ -189,8 +189,8 @@ def get_users():
   for result in cursor:
     users.append({
       "birthday": result["birthday"], 
-      "first_name": result["first_name"], 
-      "last_name": result["last_name"], 
+      "firstName": result["first_name"], 
+      "lastName": result["last_name"], 
       "sex": result["sex"], 
       "id": result["uid"]
     })  # can also be accessed using result[0]
@@ -330,13 +330,21 @@ def get_patients():
 @app.route('/patients', methods=['POST'])
 @as_json
 def get_patients_for_provider(): 
-  statement = text("""SELECT * FROM PATIENTS WHERE ptid IN (SELECT patients.ptid FROM amr2311.encounters
-LEFT JOIN undergoes USING (eid)
-LEFT JOIN patients USING (ptid)
-LEFT JOIN oversees USING (eid)
-WHERE pvid = :pvid)""")
+  statement = ''
+  params = {}
 
-  cursor = g.conn.execute(statement, {"pvid": request.json["providerId"]})
+  if "userId" in request.json.keys(): 
+    statement = text("SELECT * FROM amr2311.patients WHERE uid = :uid")
+    params = { "uid": request.json["userId"] }
+  else:
+    statement = text("""SELECT * FROM amr2311.patients WHERE ptid IN (SELECT amr2311.patients.ptid FROM amr2311.encounters
+LEFT JOIN amr2311.undergoes USING (eid)
+LEFT JOIN amr2311.patients USING (ptid)
+LEFT JOIN amr2311.oversees USING (eid)
+WHERE pvid = :pvid)""")
+    params = { "pvid": request.json["providerId"] }
+
+  cursor = g.conn.execute(statement, params)
   patients = []
   for result in cursor:
     patients.append({
