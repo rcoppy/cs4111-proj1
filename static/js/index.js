@@ -8,6 +8,8 @@ import EncountersView from './views/EncountersView.js';
 import Encounter from './components/Encounter.js';
 import MyPatientsView from './views/MyPatientsView.js';
 import Patient from './components/Patient.js';
+import PrescriptionsView from './views/PrescriptionsView.js';
+import Prescription from './components/Prescription.js';
 
 const store = new DataStore();
 
@@ -20,7 +22,7 @@ providerPaths.set("encounters", "Encounters");
 const patientPaths = new Map();
 patientPaths.set("users", "User directory");
 patientPaths.set("patient-appointments", "Appointments");
-patientPaths.set("prescriptions", "My prescriptions");
+patientPaths.set("patient-prescriptions", "My prescriptions");
 
 export default function renderPage() {
     $(document).ready(function () {
@@ -87,10 +89,28 @@ function checkIsUserProvider(user) {
     return tryGetProviderIdForUser(user.id) !== -1;
 }
 
+// function tryGetProviderIdForUser(userId) {
+//     try {
+//         const providerId = Array.from(store.getRecords('providers').values()).filter(p => p.userId === userId)[0].id;
+//         return providerId;
+//     } catch (e) {
+//         console.log(e);
+//         return -1;
+//     }
+// }
+
 function tryGetProviderIdForUser(userId) {
+    return tryGetRecordPropForUser('providers', 'id', userId); 
+}
+
+function tryGetPatientIdForUser(userId) {
+    return tryGetRecordPropForUser('patients', 'id', userId); 
+}
+
+function tryGetRecordPropForUser(recordType, propName, userId) {
     try {
-        const providerId = Array.from(store.getRecords('providers').values()).filter(p => p.userId === userId)[0].id;
-        return providerId;
+        const prop = Array.from(store.getRecords(recordType).values()).filter(p => p.userId === userId)[0][propName];
+        return prop;
     } catch (e) {
         console.log(e);
         return -1;
@@ -138,6 +158,13 @@ function bindViewsToNav() {
                     alert("this user isn't a patient");
                 }
             })
+    });
+
+    $('[data-path="patient-prescriptions"]').click(() => {
+        const user = store.getRecords('activeUser');
+        const ptid = tryGetPatientIdForUser(user.id);
+
+        renderPrescriptionsView({ patientId: ptid });
     });
 
     $('[data-path="encounters"]').click(() => {
@@ -365,6 +392,7 @@ async function renderMyPatientsView(filterParams = {}) {
         () => fetchFilteredRecordsToStore('patients', filterParams));
 
     await fetchFilteredRecordsToStore('encounters', filterParams);
+    await fetchAllOrSomeRecordsToStore('prescriptions');
 
     const pvid = filterParams.providerId;
 
@@ -376,12 +404,22 @@ async function renderMyPatientsView(filterParams = {}) {
         patient => patientIds.includes(patient.id),
         patient => {
             const user = store.getRecords('users').get(patient.userId);
+            const prescriptions = Array.from(store.getRecords('prescriptions').values())
+                                        .filter(rx => rx.patientId === patient.id); 
+
             return Object.assign({ ...patient }, {
                 firstName: user.firstName,
                 lastName: user.lastName,
-                // TODO: prescriptions 
+                prescriptions: prescriptions 
             })
         });
+}
+
+async function renderPrescriptionsView(filterParams = {}) {
+    await renderViewWithFetch("#contents", PrescriptionsView,
+        () => fetchFilteredRecordsToStore('prescriptions', filterParams));
+
+    renderFilteredRecords('#prescriptions', 'prescriptions', Prescription, filterParams); 
 }
 
 async function renderUsersView() {

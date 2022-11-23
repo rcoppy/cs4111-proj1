@@ -3,7 +3,7 @@ const Patient = ({ id, firstName, lastName, prescriptions }) => `
         <h3>${lastName}, ${firstName}</h3>
         <p>Prescriptions: </p>
         <ul> 
-        
+            ${ prescriptions.map(rx => "<li>" + rx.name + " " + rx.dosage + " mg, " + rx.doseCount + " doses | prescribed: " + rx.datePrescribed + "</li>").join('')}
         </ul>
     </div>
 `;
